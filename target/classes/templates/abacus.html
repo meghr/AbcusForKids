@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abacus for Kids</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            color: #4a6ea9;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .abacus-container {
+            background-color: #ffd699;
+            border: 10px solid #8b4513;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .row-label {
+            font-weight: bold;
+            margin-right: 10px;
+            width: 50px;
+            text-align: right;
+        }
+        
+        .abacus-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .column-headers {
+            display: flex;
+            margin-left: 60px;
+            margin-bottom: 15px;
+        }
+        
+        .column-header {
+            width: 60px;
+            margin: 0 10px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.8em;
+            color: #4a6ea9;
+        }
+        
+        .bead {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .bead.selected {
+            background-color: #ff6b6b;
+            transform: scale(1.1);
+        }
+        
+        .bead:not(.selected) {
+            background-color: #4a6ea9;
+            color: white;
+        }
+        
+        .result-container {
+            background-color: white;
+            border: 3px solid #4a6ea9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        .result-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #4a6ea9;
+            margin-bottom: 10px;
+        }
+        
+        .result-words {
+            font-size: 1.5em;
+            color: #ff6b6b;
+            text-transform: capitalize;
+        }
+        
+        button {
+            background-color: #4a6ea9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #3a5a89;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Abacus for Kids</h1>
+    
+    <div class="result-container">
+        <div class="result-number" th:text="${total}">0</div>
+        <div class="result-words" th:text="${totalInWords}">zero</div>
+    </div>
+    
+    <div class="abacus-container">
+        <div class="column-headers">
+            <div class="column-header">Ten<br>Thousands</div>
+            <div class="column-header">Thousands</div>
+            <div class="column-header">Hundreds</div>
+            <div class="column-header">Tens</div>
+            <div class="column-header">Ones</div>
+        </div>
+        
+        <div class="abacus-row" th:each="row, rowStat : ${abacus.rows}">
+            <div class="row-label" th:text="${rowStat.index}">0</div>
+            
+            <div th:each="bead, beadStat : ${row}" 
+                 th:class="${bead.selected ? 'bead selected' : 'bead'}"
+                 th:attr="data-row=${rowStat.index}, data-column=${4 - beadStat.index}">
+                <span th:text="${rowStat.index}"></span>
+            </div>
+        </div>
+    </div>
+    
+    <form action="/reset" method="post">
+        <button type="submit">Reset Abacus</button>
+    </form>
+    
+    <script>
+        $(document).ready(function() {
+            $('.bead').click(function() {
+                const row = $(this).data('row');
+                const column = $(this).data('column');
+                
+                // Deselect any other beads in the same column
+                $('.bead').filter(function() {
+                    return $(this).data('column') === column && $(this).data('row') !== row;
+                }).removeClass('selected');
+                
+                // Send AJAX request to toggle the bead
+                $.ajax({
+                    url: '/api/abacus/toggle',
+                    type: 'POST',
+                    data: {
+                        row: row,
+                        column: column
+                    },
+                    success: function(response) {
+                        // Toggle the selected class
+                        $(this).toggleClass('selected');
+                        
+                        // Update the result display
+                        $('.result-number').text(response.total);
+                        $('.result-words').text(response.totalInWords);
+                    }.bind(this),
+                    error: function() {
+                        alert('Error toggling bead. Please try again.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
